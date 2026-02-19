@@ -11,6 +11,8 @@ const __dirname = path.dirname(__filename);
 
 const PORT = Number(process.env.PORT || 3000);
 const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
+const OPENAI_TIMEOUT_MS = Number(process.env.OPENAI_TIMEOUT_MS || 45000);
+const OPENAI_MAX_RETRIES = Number(process.env.OPENAI_MAX_RETRIES || 1);
 
 function sqlGuard(rawSql) {
   if (typeof rawSql !== "string") return { ok: false, reason: "SQL is not a string." };
@@ -84,6 +86,7 @@ function sqlSystemPrompt({ schemaSql }) {
     "- Output ONLY the JSON required by the response schema.",
     "- Use SQLite syntax.",
     "- Only SELECT (WITH allowed). No mutations, no PRAGMA, no ATTACH, no multiple statements.",
+    "- The `sql` field must contain ONLY SQL (no comments like `-- ...` or `/* ... */`, no explanations).",
     "- If the question is ambiguous, make a reasonable assumption and proceed.",
     "- Prefer joining by IDs and using explicit table aliases.",
     "- Do NOT use SQL keywords as aliases (e.g., do not alias a table as `in`, `on`, `from`, `where`, `select`).",
@@ -103,12 +106,17 @@ function sqlSystemPrompt({ schemaSql }) {
 function normalizeSqlForSQLite(rawSql) {
   let sql = String(rawSql || "");
 
+  // Strip comments if the model included them inside the SQL field.
+  // (We already capture assumptions separately; comments just cause guard rejections.)
+  sql = sql.replace(/--.*$/gm, "");
+  sql = sql.replace(/\/\*[\s\S]*?\*\//g, "");
+
   // Fix a common model mistake: reserved keyword alias `in`.
   // Handles: "item_nutrients in" and "item_nutrients AS in"
   sql = sql.replace(/\bitem_nutrients\b\s+(as\s+)?in\b/gi, "item_nutrients inut");
   sql = sql.replace(/\bin\./g, "inut.");
 
-  return sql;
+  return sql.trim();
 }
 
 function sqlFewShotExamples() {
@@ -157,7 +165,9 @@ function sqlFewShotExamples() {
 
 async function createApp() {
   const apiKey = process.env.OPENAI_API_KEY;
-  const client = apiKey ? new OpenAI({ apiKey }) : null;
+  const client = apiKey
+    ? new OpenAI({ apiKey, timeout: OPENAI_TIMEOUT_MS, maxRetries: OPENAI_MAX_RETRIES })
+    : null;
 
   const schemaSql = await fs.readFile(path.resolve(__dirname, "db/schema.sql"), "utf-8");
   const dbPath = path.resolve(__dirname, "db/aidb.sqlite");
@@ -177,6 +187,18 @@ async function createApp() {
   app.use(express.json({ limit: "1mb" }));
   app.use(express.static(path.resolve(__dirname, "public")));
 
+  // Lightweight request timing logs (helps diagnose "it's stuck").
+  app.use((req, res, next) => {
+    const start = Date.now();
+    res.on("finish", () => {
+      const ms = Date.now() - start;
+      if (req.path.startsWith("/api/")) {
+        console.log(`[api] ${req.method} ${req.path} -> ${res.statusCode} (${ms}ms)`);
+      }
+    });
+    next();
+  });
+
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true });
   });
@@ -192,6 +214,11 @@ async function createApp() {
         error: "Missing OPENAI_API_KEY. Set it in your environment and restart the server."
       });
     }
+
+    // Don't let requests hang forever at the HTTP layer.
+    res.setTimeout(OPENAI_TIMEOUT_MS + 15000);
+
+    console.log(`[ask] strategy=${strategy} q="${question}"`);
 
     const responseFormatSql = {
       type: "json_schema",
@@ -244,6 +271,7 @@ async function createApp() {
     while (attempts < 3) {
       attempts += 1;
       try {
+        const t0 = Date.now();
         const completion = await client.chat.completions.create({
           model: MODEL,
           temperature: 0,
@@ -264,6 +292,7 @@ async function createApp() {
                 ],
           response_format: responseFormatSql
         });
+        console.log(`[ask] sql_gen attempt=${attempts} (${Date.now() - t0}ms)`);
 
         const msg = completion.choices?.[0]?.message;
         if (!msg?.content) throw new Error("Empty model response.");
@@ -291,6 +320,7 @@ async function createApp() {
         break;
       } catch (err) {
         execError = err?.message || String(err);
+        console.log(`[ask] sql_gen_or_exec attempt=${attempts} error=${execError}`);
         if (attempts >= 3) break;
       }
     }
@@ -325,12 +355,14 @@ async function createApp() {
     ].join("\n");
 
     try {
+      const t1 = Date.now();
       const completion2 = await client.chat.completions.create({
         model: MODEL,
         temperature: 0.2,
         messages: [{ role: "system", content: answerPrompt }],
         response_format: responseFormatAnswer
       });
+      console.log(`[ask] answer_gen (${Date.now() - t1}ms) rows=${rows.length}`);
       const msg2 = completion2.choices?.[0]?.message;
       if (!msg2?.content) throw new Error("Empty answer response.");
       const parsed2 = JSON.parse(msg2.content);

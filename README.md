@@ -107,7 +107,97 @@ LIMIT 50;
   - Result: the query returned 0 rows even though the user question sounds reasonable in a real app. This highlights a limitation: the AI can produce syntactically valid SQL that doesn't match the underlying data/modeling assumptions.
 
 ## More examples
-See `examples.md` for at least 6 additional questions to try.
+Below are additional examples that were executed through the app (Few-shot strategy).
+
+### Example 1
+- **Question**: Top 10 ingredients by protein per 100g.
+- **Generated SQL**:
+
+```sql
+SELECT i.name, i.brand, inut.amount_per_100g AS protein_g_per_100g
+FROM items AS i
+JOIN nutrients AS n ON n.name = 'protein_g'
+JOIN item_nutrients AS inut ON inut.item_id = i.item_id AND inut.nutrient_id = n.nutrient_id
+WHERE i.item_type = 'ingredient'
+ORDER BY protein_g_per_100g DESC
+LIMIT 10
+```
+
+- **Response (summary)**: The top results included Greek yogurt (34.5g/100g), Tempeh (31.8g/100g), Chicken breast (31g/100g), Egg (29.7g/100g), and Cottage cheese (29.5g/100g).
+
+### Example 2
+- **Question**: Show the 5 most recent meals I logged (date/time, recipe name, servings eaten).
+- **Generated SQL**:
+
+```sql
+SELECT ml.eaten_at, r.name AS recipe_name, ml.servings_eaten
+FROM meal_logs ml
+JOIN recipes r ON r.recipe_id = ml.recipe_id
+ORDER BY ml.eaten_at DESC
+LIMIT 5
+```
+
+- **Response (summary)**: The app returned the 5 latest `meal_logs` entries with timestamps, recipe names, and servings eaten.
+
+### Example 3
+- **Question**: Top 5 supplements by vitamin C per 100g.
+- **Generated SQL**:
+
+```sql
+SELECT i.name, i.brand, inut.amount_per_100g AS vitamin_c_mg_per_100g
+FROM items i
+JOIN nutrients n ON n.name = 'vitamin_c_mg'
+JOIN item_nutrients inut ON inut.item_id = i.item_id AND inut.nutrient_id = n.nutrient_id
+WHERE i.item_type = 'supplement'
+ORDER BY vitamin_c_mg_per_100g DESC
+LIMIT 5
+```
+
+- **Response (summary)**: The top 5 supplements by vitamin C per 100g were returned (with brand).
+
+### Example 4
+- **Question**: Top 5 supplements by magnesium per 100g (include brand).
+- **Generated SQL**:
+
+```sql
+SELECT i.name, i.brand, inut.amount_per_100g AS magnesium_mg_per_100g
+FROM items i
+JOIN nutrients n ON n.name = 'magnesium_mg'
+JOIN item_nutrients inut ON inut.item_id = i.item_id AND inut.nutrient_id = n.nutrient_id
+WHERE i.item_type = 'supplement'
+ORDER BY magnesium_mg_per_100g DESC
+LIMIT 5.
+```
+
+- **Response (summary)**: The top 5 supplements by magnesium per 100g were returned (with brand).
+
+### Example 5
+- **Question**: List recipes that include Spinach.
+- **Generated SQL**:
+
+```sql
+SELECT r.name, r.servings, r.instructions
+FROM recipes r
+JOIN recipe_items ri ON ri.recipe_id = r.recipe_id
+JOIN items i ON i.item_id = ri.item_id
+WHERE i.name = 'Spinach'
+LIMIT 50;
+```
+
+- **Response (summary)**: The app returned recipes including Spinach (e.g., Salmon Avocado Salad, Turkey Spinach Wrap, Veggie Omelet).
+
+### Example 6
+- **Question**: How many recipes are in the database?
+- **Generated SQL**:
+
+```sql
+SELECT COUNT(*) AS recipe_count
+FROM recipes;
+```
+
+- **Response**: There are 12 recipes in the database.
+
+More candidate prompts are also listed in `examples.md`.
 
 ## Notes
 - The server will start without `OPENAI_API_KEY`, but `/api/ask` will return an error until you set it.
