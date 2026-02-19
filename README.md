@@ -66,14 +66,45 @@ Ways to generate:
 - Or generate from the SQLite schema using a tool like SchemaCrawler
 
 ## Sample that worked (fill after running)
-- **Question**:
+- **Question**: Top 5 supplements by vitamin C per 100g.
 - **Generated SQL**:
+
+```sql
+SELECT i.name AS supplement_name, inut.amount_per_100g AS vitamin_c_mg
+FROM items AS i
+JOIN item_nutrients inut ON i.item_id = inut.item_id
+JOIN nutrients AS n ON inut.nutrient_id = n.nutrient_id
+WHERE i.item_type = 'supplement' AND n.name = 'vitamin_c_mg'
+ORDER BY inut.amount_per_100g DESC
+LIMIT 5;
+```
+
 - **Response**:
+  - The top 5 supplements by vitamin C per 100g are:
+    1. Vitamin C 1000mg Tablet - 62500 mg
+    2. Vitamin C 500mg (SunHealth) - 17883.72 mg
+    3. Vitamin C Gummies 250mg - 5000 mg
+    4. Multivitamin (Once Daily) - 4285.71 mg
+    5. B-Complex (DailyBasics) - 1682.54 mg
 
 ## Sample that did not work (fill after running)
-- **Question**:
+- **Question**: What supplements did I take last week?
 - **Generated SQL**:
+
+```sql
+SELECT DISTINCT i.name, i.brand
+FROM meal_logs ml
+JOIN recipes r ON ml.recipe_id = r.recipe_id
+JOIN recipe_items ri ON r.recipe_id = ri.recipe_id
+JOIN items i ON ri.item_id = i.item_id
+WHERE i.item_type = 'supplement' AND ml.eaten_at >= date('now', '-7 days')
+LIMIT 50;
+```
+
 - **What went wrong**:
+  - This database does **not** track supplement intake in `meal_logs` (we only log recipe consumption).
+  - The model tried to infer supplements from meal logs by joining through `recipe_items`, but recipes only contain ingredients in our data.
+  - Result: the query returned 0 rows even though the user question sounds reasonable in a real app. This highlights a limitation: the AI can produce syntactically valid SQL that doesn't match the underlying data/modeling assumptions.
 
 ## More examples
 See `examples.md` for at least 6 additional questions to try.
