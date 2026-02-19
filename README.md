@@ -64,11 +64,7 @@ Our prompting strategies align with the study “How to Prompt LLMs for Text-to-
 ## Schema picture
 ![Schema diagram](drawSQL-image-export-2026-02-19.png)
 
-Ways to generate:
-- Use an ERD tool (e.g., DrawSQL). For easy import, use `db/drawsql_schema.sql` (tables + PK/FK only).
-- Or generate from the SQLite schema using a tool like SchemaCrawler
-
-## Sample that worked (fill after running)
+## Sample that worked
 - **Question**: Top 5 supplements by vitamin C per 100g.
 - **Generated SQL**:
 
@@ -90,7 +86,7 @@ LIMIT 5;
     4. Multivitamin (Once Daily) - 4285.71 mg
     5. B-Complex (DailyBasics) - 1682.54 mg
 
-## Sample that did not work (fill after running)
+## Sample that did not work
 - **Question**: What supplements did I take last week?
 - **Generated SQL**:
 
