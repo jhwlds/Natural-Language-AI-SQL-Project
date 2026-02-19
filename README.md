@@ -187,15 +187,19 @@ LIMIT 50;
 - **Response (summary)**: The app returned recipes including Spinach (e.g., Salmon Avocado Salad, Turkey Spinach Wrap, Veggie Omelet).
 
 ### Example 6
-- **Question**: How many recipes are in the database?
+- **Question**: Which recipes include Avocado?
 - **Generated SQL**:
 
 ```sql
-SELECT COUNT(*) AS recipe_count
-FROM recipes;
+SELECT r.name, r.servings, r.instructions
+FROM recipes r
+JOIN recipe_items ri ON ri.recipe_id = r.recipe_id
+JOIN items i ON i.item_id = ri.item_id
+WHERE i.name = 'Avocado'
+LIMIT 50;
 ```
 
-- **Response**: There are 12 recipes in the database.
+- **Response**: The recipe that includes Avocado is "Salmon Avocado Salad" (serves 2).
 
 More candidate prompts are also listed in `examples.md`.
 
