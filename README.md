@@ -59,10 +59,10 @@ The backend supports two primary strategies, plus an execution-guided repair loo
 You can toggle Zero-shot vs Few-shot in the UI.
 
 ## Schema picture
-Add your schema image here: `schema.png`
+![Schema diagram](drawSQL-image-export-2026-02-19.png)
 
 Ways to generate:
-- Use an ERD tool (e.g., drawsql) and save as `schema.png`
+- Use an ERD tool (e.g., DrawSQL). For easy import, use `db/drawsql_schema.sql` (tables + PK/FK only).
 - Or generate from the SQLite schema using a tool like SchemaCrawler
 
 ## Sample that worked (fill after running)
