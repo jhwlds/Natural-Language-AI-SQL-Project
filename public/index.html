@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Recipe & Supplement NL → SQL</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="header">
+        <h1>Recipe & Supplement NL → SQL</h1>
+        <p class="sub">
+          Ask in plain English. The app generates SQLite SQL, runs it, then explains the result.
+        </p>
+      </header>
+
+      <section class="card">
+        <label class="label" for="question">Question</label>
+        <textarea id="question" class="textarea" rows="3" placeholder="e.g., Top 5 supplements by vitamin C per 100g."></textarea>
+
+        <div class="row">
+          <div class="field">
+            <label class="label" for="strategy">Prompt strategy</label>
+            <select id="strategy" class="select">
+              <option value="few" selected>Few-shot (single-domain)</option>
+              <option value="zero">Zero-shot</option>
+            </select>
+          </div>
+
+          <button id="askBtn" class="button">Ask</button>
+        </div>
+
+        <div id="status" class="status" role="status"></div>
+      </section>
+
+      <section id="result" class="card hidden">
+        <div class="resultHeader">
+          <h2>Result</h2>
+          <div class="meta">
+            <span id="metaStrategy"></span>
+            <span id="metaAttempts"></span>
+            <span id="metaRows"></span>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div>
+            <div class="sectionTitle">Answer</div>
+            <div id="answer" class="answer"></div>
+            <div id="caveatsWrap" class="caveats hidden">
+              <div class="sectionTitle">Caveats</div>
+              <ul id="caveats"></ul>
+            </div>
+          </div>
+
+          <div>
+            <div class="sectionTitle">
+              Generated SQL
+              <button id="toggleSql" class="linkBtn" type="button">hide</button>
+            </div>
+            <pre id="sql" class="code"></pre>
+          </div>
+        </div>
+
+        <div class="sectionTitle">Rows preview</div>
+        <div class="tableWrap">
+          <table id="rowsTable" class="table"></table>
+        </div>
+      </section>
+
+      <section id="errorBox" class="card error hidden">
+        <h2>Error</h2>
+        <pre id="errorText" class="code"></pre>
+      </section>
+    </main>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
+
