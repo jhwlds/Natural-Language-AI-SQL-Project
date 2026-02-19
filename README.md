@@ -58,6 +58,9 @@ The backend supports two primary strategies, plus an execution-guided repair loo
 
 You can toggle Zero-shot vs Few-shot in the UI.
 
+## Relation to Prior Work
+Our prompting strategies align with the study “How to Prompt LLMs for Text-to-SQL” (Chang & Fosler-Lussier, 2023, arXiv:2305.11853).\nWe implemented both zero-shot and single-domain few-shot prompting strategies.\nConsistent with the paper’s findings, we observed improved SQL stability and correctness when using in-domain few-shot examples compared to zero-shot prompting.
+
 ## Schema picture
 ![Schema diagram](drawSQL-image-export-2026-02-19.png)
 
@@ -200,8 +203,6 @@ LIMIT 50;
 ```
 
 - **Response**: The recipe that includes Avocado is "Salmon Avocado Salad" (serves 2).
-
-More candidate prompts are also listed in `examples.md`.
 
 ## Notes
 - The server will start without `OPENAI_API_KEY`, but `/api/ask` will return an error until you set it.
